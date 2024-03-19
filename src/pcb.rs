@@ -54,29 +54,6 @@ pub struct PCB {
     /// 0..total_time
     pub resource_request_time: i32,
 }
-impl PCB {
-    pub fn new(
-        pid: i32,
-        name: String,
-        state: ProcessState,
-        priority: i32,
-        process_type: ProcessType,
-        total_time: i32,
-        resource_request_time: i32,
-    ) -> PCB {
-        PCB {
-            pid,
-            name,
-            state,
-            priority,
-            process_type,
-            running_time: 0,
-            running_time_in_slice: 0,
-            total_time,
-            resource_request_time,
-        }
-    }
-}
 #[allow(dead_code)]
 #[derive(Serialize, Deserialize)]
 pub struct PCBListFile {
