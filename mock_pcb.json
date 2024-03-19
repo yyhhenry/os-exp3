@@ -21,7 +21,7 @@
       "name": "Process 3",
       "priority": 1,
       "process_type": "System",
-      "total_time": 2,
+      "total_time": 5,
       "resource_request_time": 1
     },
     {
