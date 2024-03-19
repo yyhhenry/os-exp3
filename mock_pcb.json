@@ -1,0 +1,18 @@
+{
+  "pcb_list": [
+    {
+      "pid": 1001,
+      "priority": 0,
+      "process_type": "User",
+      "total_time": 100,
+      "resource_request_time": 10
+    },
+    {
+      "pid": 1002,
+      "priority": 0,
+      "process_type": "User",
+      "total_time": 100,
+      "resource_request_time": 10
+    }
+  ]
+}
