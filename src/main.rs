@@ -1,6 +1,6 @@
 mod console;
 pub mod pcb;
-use std::collections::VecDeque;
+use std::{collections::VecDeque, thread::sleep, time::Duration};
 
 use anyhow::Result;
 use console::print_pcb_table;
@@ -44,12 +44,14 @@ impl Scheduler {
     fn ready_from_waiting(&mut self) {
         if let Some(mut pcb) = self.waiting.pop_front() {
             pcb.state = pcb::ProcessState::Ready;
+            println!("PID: {} is ready", pcb.pid);
             self.ready.push_back(pcb);
         }
     }
     fn release_resource(&mut self, pid: i32) {
         if self.resource.pid == Some(pid) {
             self.resource.pid = None;
+            println!("Resource released by PID: {}", pid);
             self.ready_from_waiting();
         }
     }
@@ -78,11 +80,15 @@ impl Scheduler {
         }
     }
     fn attach_ready(&mut self) {
-        assert!(self.running.is_none());
+        assert!(
+            self.running.is_none(),
+            "The running process must be detached first"
+        );
         // You should move the process with the highest priority to the front of the queue before attaching it
         if let Some(mut ready) = self.ready.pop_front() {
             ready.state = pcb::ProcessState::Running;
             ready.running_time_in_slice = 0;
+            println!("PID: {} is running", ready.pid);
             self.running = Some(ready);
         }
     }
@@ -94,27 +100,12 @@ impl Scheduler {
             pcb.priority = (pcb.priority - 1).max(MIN_PRIORITY);
         }
     }
-    pub fn next_tick(&mut self) {
-        // Update counters
-        if let Some(running) = &mut self.running {
-            running.running_time += 1;
-            running.running_time_in_slice += 1;
-        }
+    pub fn dispatch(&mut self) {
         self.update_priority();
         self.move_highest_priority_to_front();
         if let Some(running) = &self.running {
-            if running.running_time >= running.total_time {
-                // If the process has finished
-                self.finish_running();
-            } else if running.running_time >= running.resource_request_time {
-                // If the process needs to request resources
-                if self.resource.pid.is_none() {
-                    self.resource.pid = Some(running.pid);
-                } else {
-                    self.running_to_waiting();
-                }
-            } else if running.running_time_in_slice >= TIME_SLICE {
-                // If the time slice has been used up
+            if running.running_time_in_slice >= TIME_SLICE {
+                println!("Time slice used up by PID: {}", running.pid);
                 self.detach_running();
             } else if self
                 .ready
@@ -122,7 +113,7 @@ impl Scheduler {
                 .map(|ready| ready.priority < running.priority)
                 .unwrap_or(false)
             {
-                // If there is a process with a higher priority
+                println!("PID: {} has been preempted", running.pid);
                 self.detach_running();
             }
         }
@@ -130,9 +121,37 @@ impl Scheduler {
             self.attach_ready();
         }
     }
+    pub fn run(&mut self) {
+        if let Some(running) = &mut self.running {
+            if running.running_time == running.resource_request_time {
+                // If the process needs to request resources
+                if self.resource.pid.is_none() {
+                    println!("Resource requested by PID: {}", running.pid);
+                    self.resource.pid = Some(running.pid);
+                } else if self.resource.pid != Some(running.pid) {
+                    println!("PID: {} is waiting for the resource", running.pid);
+                    self.running_to_waiting();
+                }
+            }
+        }
+        if let Some(running) = &mut self.running {
+            sleep(Duration::from_secs_f32(0.5));
+            running.running_time += 1;
+            running.running_time_in_slice += 1;
+            if running.running_time == running.total_time {
+                // If the process has finished
+                println!("PID: {} has finished", running.pid);
+                self.finish_running();
+            }
+        }
+    }
     pub fn run_all(&mut self) {
+        let mut tick = 0;
         loop {
-            self.next_tick();
+            tick += 1;
+            println!("Tick: {}", tick);
+            self.run();
+            self.dispatch();
             self.print_table();
             if self.running.is_none() {
                 break;
@@ -142,6 +161,7 @@ impl Scheduler {
 }
 fn main() -> Result<()> {
     let pcb_list: Vec<PCB> = PCBListFile::from_file("mock_pcb.json")?.into();
+    print_pcb_table(&pcb_list);
     let mut scheduler = Scheduler::new(pcb_list);
     scheduler.run_all();
     Ok(())

@@ -9,6 +9,7 @@ where
     let mut table = Table::new();
     table.add_row(row![
         "PID",
+        "Name",
         "State",
         "Priority",
         "Type",
@@ -19,6 +20,7 @@ where
     for pcb in pcb_list {
         table.add_row(row![
             pcb.pid,
+            pcb.name,
             format!("{:?}", pcb.state),
             pcb.priority,
             format!("{:?}", pcb.process_type),

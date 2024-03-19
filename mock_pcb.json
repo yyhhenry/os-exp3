@@ -2,17 +2,35 @@
   "pcb_list": [
     {
       "pid": 1001,
-      "priority": 0,
+      "name": "Process 1",
+      "priority": 11,
       "process_type": "User",
-      "total_time": 100,
-      "resource_request_time": 10
+      "total_time": 3,
+      "resource_request_time": 1
     },
     {
       "pid": 1002,
-      "priority": 0,
+      "name": "Process 2",
+      "priority": 9,
+      "process_type": "System",
+      "total_time": 4,
+      "resource_request_time": 0
+    },
+    {
+      "pid": 1003,
+      "name": "Process 3",
+      "priority": 1,
+      "process_type": "System",
+      "total_time": 2,
+      "resource_request_time": 1
+    },
+    {
+      "pid": 1004,
+      "name": "Process 4",
+      "priority": 11,
       "process_type": "User",
-      "total_time": 100,
-      "resource_request_time": 10
+      "total_time": 3,
+      "resource_request_time": 2
     }
   ]
 }

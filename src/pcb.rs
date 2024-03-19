@@ -28,6 +28,8 @@ pub static MIN_PRIORITY: i32 = -20;
 pub struct PCB {
     /// Process ID
     pub pid: i32,
+    /// Process Name
+    pub name: String,
     /// Process State
     #[serde(default)]
     pub state: ProcessState,
@@ -49,11 +51,13 @@ pub struct PCB {
     pub total_time: i32,
     /// [Mock Value] The time for the process to request resources
     /// The process needs to request resources at this time
+    /// 0..total_time
     pub resource_request_time: i32,
 }
 impl PCB {
     pub fn new(
         pid: i32,
+        name: String,
         state: ProcessState,
         priority: i32,
         process_type: ProcessType,
@@ -62,6 +66,7 @@ impl PCB {
     ) -> PCB {
         PCB {
             pid,
+            name,
             state,
             priority,
             process_type,
