@@ -37,35 +37,40 @@ impl Scheduler {
             .chain(self.finished.iter());
         print_pcb_table(iter);
     }
-    fn ready_from_waiting(&mut self) {
+    fn wakeup_waiting(&mut self) {
         if let Some(mut pcb) = self.waiting.pop_front() {
             pcb.state = ProcessState::Ready;
-            println!("PID: {} is ready", pcb.pid);
+            println!("PID: {} is woken up to the ready state", pcb.pid);
             self.ready.push_back(pcb);
         }
     }
-    fn release_resource(&mut self, pid: i32) {
-        if self.resource.pid == Some(pid) {
-            self.resource.pid = None;
-            println!("Resource released by PID: {}", pid);
-            self.ready_from_waiting();
+    fn release_resource(&mut self) {
+        if let Some(running) = &self.running {
+            if self.resource.pid == Some(running.pid) {
+                self.resource.pid = None;
+                println!("Resource released by PID: {}", running.pid);
+                self.wakeup_waiting();
+            }
         }
     }
     fn finish_running(&mut self) {
+        self.release_resource();
         if let Some(mut running) = self.running.take() {
-            self.release_resource(running.pid);
+            println!("PID: {} has finished", running.pid);
             running.state = ProcessState::Finished;
             self.finished.push(running);
         }
     }
-    fn running_to_waiting(&mut self) {
+    fn block_running(&mut self) {
         if let Some(mut running) = self.running.take() {
+            println!("PID: {} is waiting for the resource", running.pid);
             running.state = ProcessState::Waiting;
             self.waiting.push_back(running);
         }
     }
-    fn detach_running(&mut self) {
+    fn preempt_running(&mut self) {
         if let Some(mut running) = self.running.take() {
+            println!("PID: {} has been preempted", running.pid);
             running.state = ProcessState::Ready;
             self.ready.push_back(running);
         }
@@ -76,17 +81,23 @@ impl Scheduler {
             .and_then(|index| self.ready.remove(index))
             .map(|pcb| self.ready.push_front(pcb));
     }
-    fn attach_ready(&mut self) {
+    fn dispatch_ready(&mut self) {
         assert!(
             self.running.is_none(),
             "The running process must be detached first"
         );
-        // You should move the process with the highest priority to the front of the queue before attaching it
         if let Some(mut ready) = self.ready.pop_front() {
             ready.state = ProcessState::Running;
             ready.running_time_in_slice = 0;
-            println!("PID: {} is going to run", ready.pid);
+            println!("PID: {} is dispatched", ready.pid);
             self.running = Some(ready);
+        }
+    }
+    fn occupy_resource(&mut self) {
+        if let Some(running) = &mut self.running {
+            assert!(self.resource.pid.is_none(), "The resource must be free");
+            println!("Resource occupied by PID: {}", running.pid);
+            self.resource.pid = Some(running.pid);
         }
     }
     fn update_priority(&mut self) {
@@ -103,31 +114,27 @@ impl Scheduler {
         if let Some(running) = &self.running {
             if running.running_time_in_slice >= TIME_SLICE {
                 println!("Time slice used up by PID: {}", running.pid);
-                self.detach_running();
+                self.preempt_running();
             } else if self
                 .ready
                 .front()
                 .map(|ready| ready.priority < running.priority)
                 .unwrap_or(false)
             {
-                println!("PID: {} has been preempted", running.pid);
-                self.detach_running();
+                self.preempt_running();
             }
         }
         if self.running.is_none() {
-            self.attach_ready();
+            self.dispatch_ready();
         }
     }
     pub fn run(&mut self, fast: bool) -> i32 {
         if let Some(running) = &mut self.running {
             if running.running_time == running.resource_request_time {
-                // If the process needs to request resources
                 if self.resource.pid.is_none() {
-                    println!("Resource requested by PID: {}", running.pid);
-                    self.resource.pid = Some(running.pid);
+                    self.occupy_resource();
                 } else if self.resource.pid != Some(running.pid) {
-                    println!("PID: {} is waiting for the resource", running.pid);
-                    self.running_to_waiting();
+                    self.block_running();
                 }
             }
         }
@@ -139,8 +146,6 @@ impl Scheduler {
             running.running_time += 1;
             running.running_time_in_slice += 1;
             if running.running_time == running.total_time {
-                // If the process has finished
-                println!("PID: {} has finished", running.pid);
                 self.finish_running();
             }
             return 1;

@@ -2,7 +2,7 @@
   "pcb_list": [
     {
       "pid": 1001,
-      "name": "Process 1",
+      "name": "Process A",
       "priority": 11,
       "process_type": "User",
       "total_time": 3,
@@ -10,7 +10,7 @@
     },
     {
       "pid": 1002,
-      "name": "Process 2",
+      "name": "Process B",
       "priority": 9,
       "process_type": "System",
       "total_time": 4,
@@ -18,7 +18,7 @@
     },
     {
       "pid": 1003,
-      "name": "Process 3",
+      "name": "Process C",
       "priority": 1,
       "process_type": "System",
       "total_time": 5,
@@ -26,7 +26,7 @@
     },
     {
       "pid": 1004,
-      "name": "Process 4",
+      "name": "Process D",
       "priority": 11,
       "process_type": "User",
       "total_time": 3,
