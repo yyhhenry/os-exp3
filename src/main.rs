@@ -5,6 +5,7 @@ use std::{collections::VecDeque, thread::sleep, time::Duration};
 use anyhow::Result;
 use console::print_pcb_table;
 use pcb::{PCBListFile, MAX_PRIORITY, MIN_PRIORITY, PCB};
+use prettytable::table;
 
 pub const TIME_SLICE: i32 = 2;
 
@@ -75,9 +76,10 @@ impl Scheduler {
         }
     }
     fn move_highest_priority_to_front(&mut self) {
-        if let Some(index) = (0..self.ready.len()).min_by_key(|&i| self.ready[i].priority) {
-            self.ready.swap(0, index);
-        }
+        (0..self.ready.len())
+            .min_by_key(|&index| self.ready[index].priority)
+            .and_then(|index| self.ready.remove(index))
+            .map(|pcb| self.ready.push_front(pcb));
     }
     fn attach_ready(&mut self) {
         assert!(
@@ -88,7 +90,7 @@ impl Scheduler {
         if let Some(mut ready) = self.ready.pop_front() {
             ready.state = pcb::ProcessState::Running;
             ready.running_time_in_slice = 0;
-            println!("PID: {} is running", ready.pid);
+            println!("PID: {} is going to run", ready.pid);
             self.running = Some(ready);
         }
     }
@@ -121,7 +123,7 @@ impl Scheduler {
             self.attach_ready();
         }
     }
-    pub fn run(&mut self) {
+    pub fn run(&mut self) -> i32 {
         if let Some(running) = &mut self.running {
             if running.running_time == running.resource_request_time {
                 // If the process needs to request resources
@@ -135,6 +137,7 @@ impl Scheduler {
             }
         }
         if let Some(running) = &mut self.running {
+            table!([format!("[INFO] PID: {} runs for 1 tick", running.pid)]).printstd();
             sleep(Duration::from_secs_f32(0.5));
             running.running_time += 1;
             running.running_time_in_slice += 1;
@@ -143,15 +146,16 @@ impl Scheduler {
                 println!("PID: {} has finished", running.pid);
                 self.finish_running();
             }
+            return 1;
         }
+        return 0;
     }
     pub fn run_all(&mut self) {
         let mut tick = 0;
         loop {
-            tick += 1;
-            println!("Tick: {}", tick);
-            self.run();
+            tick += self.run();
             self.dispatch();
+            println!("+ PCB list (tick = {})", tick);
             self.print_table();
             if self.running.is_none() {
                 break;

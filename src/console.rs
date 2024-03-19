@@ -14,8 +14,7 @@ where
         "Priority",
         "Type",
         "Running Time",
-        "Total Time",
-        "Resource Request Time"
+        "Total Time"
     ]);
     for pcb in pcb_list {
         table.add_row(row![
@@ -25,8 +24,7 @@ where
             pcb.priority,
             format!("{:?}", pcb.process_type),
             pcb.running_time,
-            pcb.total_time,
-            pcb.resource_request_time
+            pcb.total_time
         ]);
     }
     table.printstd();
